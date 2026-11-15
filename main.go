@@ -1,15 +1,19 @@
 package main
 
 import (
-//	"fmt"
+	//	"fmt"
+	"database/sql"
 	"log"
 	"os"
 
 	"github.com/ihaliti03/blogaggregator/internal/config"
+	"github.com/ihaliti03/blogaggregator/internal/database"
+	_ "github.com/lib/pq"
 )
 
 type state struct {
 	cfg *config.Config
+	db *database.Queries
 }
 
 func main() {
@@ -17,11 +21,29 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	
+	db, err := sql.Open("postgres", cfg.DBURL)
+	if err != nil{
+		log.Fatal(err)
+	}
+	err = db.Ping()
+	if err != nil{
+		log.Fatal(err)
+	}
+	
+	dbQuery := database.New(db)
+	s := &state{
+		cfg: &cfg,
+		db: dbQuery, //Now every handler can call s.db.GetUser(ctx, name) and s.db.CreateUser(ctx, params)
+	}
 
-	s := &state{cfg: &cfg}
+	
     cmds := &commands{handlers: make(map[string]func(*state, command) error)}
 
     cmds.register("login", handlerLogin)
+	cmds.register("register", handlerRegister)
+	cmds.register("reset", handlerReset)
+	cmds.register("users", handlerUsers)
 
 	if len(os.Args) < 2 {
         log.Fatal("no command provided")
