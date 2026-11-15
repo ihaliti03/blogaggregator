@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"time"
-
+	
 	//"uuid"
 	"github.com/google/uuid"
 	"github.com/ihaliti03/blogaggregator/internal/database"
@@ -74,6 +74,63 @@ func handlerUsers(s *state, cmd command) error{
 		} else {
 			fmt.Printf(" * %s\n", user.Name)
 		}
+	}
+	return nil
+}
+
+func handlerAgg(s *state, cmd command) error{
+	const feedURL = "https://www.wagslane.dev/index.xml"
+	
+	feed, err := fetchFeed(context.Background(), feedURL)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%+v\n",feed)
+
+	return nil
+}
+
+func handlerAddFeed(s *state, cmd command) error{
+	if len(cmd.arguments) < 2 {
+		return fmt.Errorf("usage: addfeed <name> <link>")
+	}
+
+	name := cmd.arguments[0]
+	feedURL := cmd.arguments[1]
+
+	ctx := context.Background()
+	currentUser, err := s.db.GetUser(ctx, s.cfg.CurrentUserName)
+    if err != nil {
+        return fmt.Errorf("couldn't find current user %q: %w", s.cfg.CurrentUserName, err)
+    }
+
+	feedRequest := database.CreateFeedParams{
+        ID:        uuid.New(),
+        CreatedAt: time.Now(),
+        UpdatedAt: time.Now(),
+        Name:      name,
+        Url:       feedURL,
+        UserID:    currentUser.ID,
+    }
+
+	feed, err := s.db.CreateFeed(ctx, feedRequest)
+    if err != nil {
+        return fmt.Errorf("couldn't create feed: %w", err)
+    }
+
+	fmt.Printf("Feed created: %+v\n", feed)
+	return nil
+}
+
+func handlerFeeds(s *state, cmd command) error{
+	feeds, err := s.db.GetFeeds(context.Background())
+	if err!=nil{
+		return err
+	}
+
+	for _, feed := range feeds{
+		fmt.Printf("Name: %s | URL: %s | User: %s\n", feed.Name, feed.Url, feed.UserName)
 	}
 	return nil
 }
