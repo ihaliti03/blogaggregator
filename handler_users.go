@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"time"
-	
+
 	//"uuid"
 	"github.com/google/uuid"
 	"github.com/ihaliti03/blogaggregator/internal/database"
 )
 
-func handlerLogin(s *state, cmd command) error{
+func handlerLogin(s *state, cmd command) error {
 	// don't check with cmd.arguments == nil but use len()
 	if len(cmd.arguments) == 0 {
 		return fmt.Errorf("no argumments inputted")
@@ -21,7 +21,7 @@ func handlerLogin(s *state, cmd command) error{
 		return err
 	}
 
-	if err := s.cfg.SetUser(cmd.arguments[0]);err != nil {
+	if err := s.cfg.SetUser(cmd.arguments[0]); err != nil {
 		return err
 	}
 
@@ -33,7 +33,7 @@ func handlerRegister(s *state, cmd command) error {
 	if len(cmd.arguments) == 0 {
 		return fmt.Errorf("usage: register <username>")
 	}
-	
+
 	username := cmd.arguments[0]
 
 	params := database.CreateUserParams{
@@ -58,18 +58,20 @@ func handlerRegister(s *state, cmd command) error {
 
 func handlerReset(s *state, cmd command) error {
 	err := s.db.DeleteUsers(context.Background())
-	if err!=nil{
+	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func handlerUsers(s *state, cmd command) error{
+func handlerUsers(s *state, cmd command) error {
 	users, err := s.db.GetUsers(context.Background())
-	if err!=nil{return err}
+	if err != nil {
+		return err
+	}
 
-	for _, user := range users{
-		if s.cfg.CurrentUserName == user.Name{
+	for _, user := range users {
+		if s.cfg.CurrentUserName == user.Name {
 			fmt.Printf(" * %s (current)\n", user.Name)
 		} else {
 			fmt.Printf(" * %s\n", user.Name)

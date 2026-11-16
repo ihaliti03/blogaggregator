@@ -13,7 +13,7 @@ import (
 
 type state struct {
 	cfg *config.Config
-	db *database.Queries
+	db  *database.Queries
 }
 
 func main() {
@@ -21,26 +21,25 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	db, err := sql.Open("postgres", cfg.DBURL)
-	if err != nil{
+	if err != nil {
 		log.Fatal(err)
 	}
 	err = db.Ping()
-	if err != nil{
+	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	dbQuery := database.New(db)
 	s := &state{
 		cfg: &cfg,
-		db: dbQuery, //Now every handler can call s.db.GetUser(ctx, name) and s.db.CreateUser(ctx, params)
+		db:  dbQuery, //Now every handler can call s.db.GetUser(ctx, name) and s.db.CreateUser(ctx, params)
 	}
 
-	
-    cmds := &commands{handlers: make(map[string]func(*state, command) error)}
+	cmds := &commands{handlers: make(map[string]func(*state, command) error)}
 
-    cmds.register("login", handlerLogin)
+	cmds.register("login", handlerLogin)
 	cmds.register("register", handlerRegister)
 	cmds.register("reset", handlerReset)
 	cmds.register("users", handlerUsers)
@@ -50,18 +49,18 @@ func main() {
 	cmds.register("follow", middlewareLoggedIn(handlerFollow))
 	cmds.register("following", middlewareLoggedIn(handlerFollowing))
 	cmds.register("unfollow", middlewareLoggedIn(handlerUnfollow))
+	cmds.register("browse", middlewareLoggedIn(handlerBrowse))
 
 	if len(os.Args) < 2 {
-        log.Fatal("no command provided")
-    }
-    cmd := command{
-        name:      os.Args[1],
-        arguments: os.Args[2:],
-    }
+		log.Fatal("no command provided")
+	}
+	cmd := command{
+		name:      os.Args[1],
+		arguments: os.Args[2:],
+	}
 	if err := cmds.run(s, cmd); err != nil {
-        log.Fatal(err)
-    }
+		log.Fatal(err)
+	}
 
-	
 	//fmt.Printf("%+v\n", updatedConfig)
 }

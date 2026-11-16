@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-// we might change the app name, we don't wanna search in 
+// we might change the app name, we don't wanna search in
 // code we can just change in the const the gator part
 const configFileName = ".gatorconfig.json"
 
@@ -47,7 +47,7 @@ func getConfigFilePath() (string, error) {
 		return "", fmt.Errorf("error finding home dir: %w", err)
 	}
 
-	configPath := filepath.Join(home, configFileName) 
+	configPath := filepath.Join(home, configFileName)
 	// .Join instead of --> home + "/" + configFileName
 	return configPath, nil
 }
