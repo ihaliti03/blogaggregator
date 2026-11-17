@@ -25,3 +25,14 @@ SELECT *
 FROM feeds
 ORDER BY last_fetched_at ASC NULLS FIRST
 LIMIT 1;
+
+-- name: GetFeedsToFetch :many
+SELECT *
+FROM feeds
+WHERE last_fetched_at IS NULL
+   OR last_fetched_at < NOW() - INTERVAL '1 minute'
+ORDER BY last_fetched_at ASC NULLS FIRST;
+
+-- name: DeleteFeedByURL :execrows
+DELETE FROM feeds WHERE url = $1 AND user_id = $2;
+

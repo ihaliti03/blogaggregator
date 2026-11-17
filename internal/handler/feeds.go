@@ -57,3 +57,23 @@ func HandleFeeds(s *State, cmd Command) error {
 	}
 	return nil
 }
+
+func HandleDeleteFeed(s *State, cmd Command, user database.User) error {
+	if len(cmd.Arguments) < 1 {
+		return fmt.Errorf("usage: deletefeed <url>")
+	}
+
+	rows, err := s.Db.DeleteFeedByURL(context.Background(), database.DeleteFeedByURLParams{
+		Url:    cmd.Arguments[0],
+		UserID: user.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("couldn't delete feed: %w", err)
+	}
+	if rows == 0 {
+		return fmt.Errorf("feed %q not found or you don't own it", cmd.Arguments[0])
+	}
+
+	fmt.Printf("Feed deleted\n")
+	return nil
+}

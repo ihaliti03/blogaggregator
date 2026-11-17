@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,14 +33,45 @@ func HandleAgg(s *State, cmd Command) error {
 	}
 }
 
+const maxConcurrentFetches = 10
+
 func ScrapeFeeds(s *State) error {
 	ctx := context.Background()
 
-	feed, err := s.Db.GetNextFeedToFetch(ctx)
+	feeds, err := s.Db.GetFeedsToFetch(ctx)
 	if err != nil {
-		return fmt.Errorf("couldn't get next feed: %w", err)
+		return fmt.Errorf("couldn't get feeds to fetch: %w", err)
 	}
 
+	if len(feeds) == 0 {
+		return nil
+	}
+
+	// semaphore: at most maxConcurrentFetches goroutines run at once
+	sem := make(chan struct{}, maxConcurrentFetches)
+	var wg sync.WaitGroup
+
+	for _, feed := range feeds {
+		wg.Add(1)
+		sem <- struct{}{} // acquire a slot (blocks if 10 already running)
+		go func(f database.Feed) {
+			defer wg.Done()
+			defer func() { <-sem }() // release the slot
+
+			if err := fetchAndSave(s, &f); err != nil {
+				fmt.Printf("error fetching %q: %v\n", f.Name, err)
+			}
+		}(feed)
+	}
+
+	wg.Wait()
+	return nil
+}
+
+func fetchAndSave(s *State, feed *database.Feed) error {
+	ctx := context.Background()
+
+	// mark first (so it's not re-fetched next tick)
 	if err := s.Db.MarkFeedFetched(ctx, feed.ID); err != nil {
 		return fmt.Errorf("couldn't mark feed fetched: %w", err)
 	}
@@ -80,6 +112,5 @@ func ScrapeFeeds(s *State) error {
 	}
 
 	fmt.Printf("Feed: %s — saved %d items\n", feed.Name, len(parsedFeed.Channel.Item))
-
 	return nil
 }

@@ -49,6 +49,23 @@ func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, e
 	return i, err
 }
 
+const deleteFeedByURL = `-- name: DeleteFeedByURL :execrows
+DELETE FROM feeds WHERE url = $1 AND user_id = $2
+`
+
+type DeleteFeedByURLParams struct {
+	Url    string
+	UserID uuid.UUID
+}
+
+func (q *Queries) DeleteFeedByURL(ctx context.Context, arg DeleteFeedByURLParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteFeedByURL, arg.Url, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const getFeedByURL = `-- name: GetFeedByURL :one
 SELECT id, created_at, updated_at, name, url, user_id, last_fetched_at FROM feeds WHERE url = $1
 `
@@ -93,6 +110,45 @@ func (q *Queries) GetFeeds(ctx context.Context) ([]GetFeedsRow, error) {
 	for rows.Next() {
 		var i GetFeedsRow
 		if err := rows.Scan(&i.Name, &i.Url, &i.UserName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getFeedsToFetch = `-- name: GetFeedsToFetch :many
+SELECT id, created_at, updated_at, name, url, user_id, last_fetched_at
+FROM feeds
+WHERE last_fetched_at IS NULL
+   OR last_fetched_at < NOW() - INTERVAL '1 minute'
+ORDER BY last_fetched_at ASC NULLS FIRST
+`
+
+func (q *Queries) GetFeedsToFetch(ctx context.Context) ([]Feed, error) {
+	rows, err := q.db.QueryContext(ctx, getFeedsToFetch)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Feed
+	for rows.Next() {
+		var i Feed
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.Url,
+			&i.UserID,
+			&i.LastFetchedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

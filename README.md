@@ -2,7 +2,7 @@
 
 A command-line RSS feed aggregator written in Go.
 
-`blogaggregator` lets you register users, add RSS feeds, follow your favorites, and browse the latest posts from all the feeds you follow. A background aggregation loop periodically fetches every feed and saves new posts to a Postgres database.
+`blogaggregator` lets you register users, add RSS feeds, follow your favorites, and browse the latest posts from all the feeds you follow. A background aggregation loop fetches all due feeds concurrently and saves new posts to a Postgres database.
 
 ---
 
@@ -103,11 +103,17 @@ Follows an existing feed (one that has already been added).
 
     blogaggregator following
 
+### Delete a feed
+
+    blogaggregator deletefeed "https://techcrunch.com/feed/"
+
+Deletes a feed you created. Only the creator can delete a feed — the command errors if the feed is owned by someone else, naming the owner. Deleting a feed also removes all posts from it and all users' follows of it (via ON DELETE CASCADE).
+
 ### Start the aggregator
 
     blogaggregator agg 1m
 
-Runs a long-lived background loop that fetches every feed once per interval (`1m` = one minute). New posts are saved to the database. Stop it with `Ctrl+C`.
+Runs a long-lived background loop that fetches all due feeds once per interval (`1m` = one minute). Feeds are fetched concurrently (up to 10 at a time). New posts are saved to the database. Stop it with `Ctrl+C`.
 
 **Tip:** run this in one terminal and use the other commands in a second terminal — the aggregator keeps the database up to date while you browse.
 
@@ -141,6 +147,9 @@ Displays the latest posts from all feeds you follow, newest first.
 
     # 4. follow additional feeds as you discover them
     blogaggregator follow "https://blog.boot.dev/index.xml"
+
+    # 5. clean up a feed you no longer want
+    blogaggregator deletefeed "https://techcrunch.com/feed/"
 
 ---
 

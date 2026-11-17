@@ -46,6 +46,7 @@ func Run() {
 	cmds.Register("following", middleware.LoggedIn(handler.HandleFollowing))
 	cmds.Register("unfollow", middleware.LoggedIn(handler.HandleUnfollow))
 	cmds.Register("browse", middleware.LoggedIn(handler.HandleBrowse))
+	cmds.Register("deletefeed", middleware.LoggedIn(handler.HandleDeleteFeed))
 
 	if len(os.Args) < 2 {
 		log.Fatal("no command provided")
