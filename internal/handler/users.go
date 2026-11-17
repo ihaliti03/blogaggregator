@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"context"
@@ -10,18 +10,18 @@ import (
 	"github.com/ihaliti03/blogaggregator/internal/database"
 )
 
-func handlerLogin(s *state, cmd command) error {
+func HandleLogin(s *State, cmd Command) error {
 	// don't check with cmd.arguments == nil but use len()
-	if len(cmd.arguments) == 0 {
+	if len(cmd.Arguments) == 0 {
 		return fmt.Errorf("no argumments inputted")
 	}
 
-	user, err := s.db.GetUser(context.Background(), cmd.arguments[0])
+	user, err := s.Db.GetUser(context.Background(), cmd.Arguments[0])
 	if err != nil {
 		return err
 	}
 
-	if err := s.cfg.SetUser(cmd.arguments[0]); err != nil {
+	if err := s.Cfg.SetUser(cmd.Arguments[0]); err != nil {
 		return err
 	}
 
@@ -29,12 +29,12 @@ func handlerLogin(s *state, cmd command) error {
 	return nil
 }
 
-func handlerRegister(s *state, cmd command) error {
-	if len(cmd.arguments) == 0 {
+func HandleRegister(s *State, cmd Command) error {
+	if len(cmd.Arguments) == 0 {
 		return fmt.Errorf("usage: register <username>")
 	}
 
-	username := cmd.arguments[0]
+	username := cmd.Arguments[0]
 
 	params := database.CreateUserParams{
 		ID:        uuid.New(),
@@ -43,12 +43,12 @@ func handlerRegister(s *state, cmd command) error {
 		Name:      username,
 	}
 
-	user, err := s.db.CreateUser(context.Background(), params)
+	user, err := s.Db.CreateUser(context.Background(), params)
 	if err != nil {
 		return err
 	}
 
-	if err := s.cfg.SetUser(username); err != nil {
+	if err := s.Cfg.SetUser(username); err != nil {
 		return err
 	}
 
@@ -56,22 +56,22 @@ func handlerRegister(s *state, cmd command) error {
 	return nil
 }
 
-func handlerReset(s *state, cmd command) error {
-	err := s.db.DeleteUsers(context.Background())
+func HandleReset(s *State, cmd Command) error {
+	err := s.Db.DeleteUsers(context.Background())
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func handlerUsers(s *state, cmd command) error {
-	users, err := s.db.GetUsers(context.Background())
+func HandleUsers(s *State, cmd Command) error {
+	users, err := s.Db.GetUsers(context.Background())
 	if err != nil {
 		return err
 	}
 
 	for _, user := range users {
-		if s.cfg.CurrentUserName == user.Name {
+		if s.Cfg.CurrentUserName == user.Name {
 			fmt.Printf(" * %s (current)\n", user.Name)
 		} else {
 			fmt.Printf(" * %s\n", user.Name)

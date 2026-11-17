@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"context"
@@ -9,20 +9,20 @@ import (
 	"github.com/ihaliti03/blogaggregator/internal/database"
 )
 
-func handlerFollow(s *state, cmd command, user database.User) error {
-	if len(cmd.arguments) < 1 {
+func HandleFollow(s *State, cmd Command, user database.User) error {
+	if len(cmd.Arguments) < 1 {
 		return fmt.Errorf("usage: follow <url>")
 	}
 
-	url := cmd.arguments[0]
+	url := cmd.Arguments[0]
 	ctx := context.Background()
 
-	feed, err := s.db.GetFeedByURL(ctx, url)
+	feed, err := s.Db.GetFeedByURL(ctx, url)
 	if err != nil {
 		return fmt.Errorf("couldn't find feed with url %q: %w", url, err)
 	}
 
-	follow, err := s.db.CreateFeedFollow(ctx, database.CreateFeedFollowParams{
+	follow, err := s.Db.CreateFeedFollow(ctx, database.CreateFeedFollowParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -37,10 +37,10 @@ func handlerFollow(s *state, cmd command, user database.User) error {
 	return nil
 }
 
-func handlerFollowing(s *state, cmd command, user database.User) error {
+func HandleFollowing(s *State, cmd Command, user database.User) error {
 	ctx := context.Background()
 
-	follows, err := s.db.GetFeedFollowsForUser(ctx, user.ID)
+	follows, err := s.Db.GetFeedFollowsForUser(ctx, user.ID)
 	if err != nil {
 		return fmt.Errorf("couldn't get follows: %w", err)
 	}
@@ -57,20 +57,20 @@ func handlerFollowing(s *state, cmd command, user database.User) error {
 	return nil
 }
 
-func handlerUnfollow(s *state, cmd command, user database.User) error {
-	if len(cmd.arguments) < 1 {
+func HandleUnfollow(s *State, cmd Command, user database.User) error {
+	if len(cmd.Arguments) < 1 {
 		return fmt.Errorf("usage: unfollow <url>")
 	}
 
-	url := cmd.arguments[0]
+	url := cmd.Arguments[0]
 	ctx := context.Background()
 
-	feed, err := s.db.GetFeedByURL(ctx, url)
+	feed, err := s.Db.GetFeedByURL(ctx, url)
 	if err != nil {
 		return fmt.Errorf("couldn't find feed with url %q: %w", url, err)
 	}
 
-	if err := s.db.DeleteFeedFollow(ctx, database.DeleteFeedFollowParams{
+	if err := s.Db.DeleteFeedFollow(ctx, database.DeleteFeedFollowParams{
 		UserID: user.ID,
 		FeedID: feed.ID,
 	}); err != nil {

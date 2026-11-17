@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"context"
@@ -8,11 +8,11 @@ import (
 	"github.com/ihaliti03/blogaggregator/internal/database"
 )
 
-func handlerBrowse(s *state, cmd command, user database.User) error {
+func HandleBrowse(s *State, cmd Command, user database.User) error {
 
 	limit := int32(2)
-	if len(cmd.arguments) > 0 {
-		parsedInt, err := strconv.Atoi(cmd.arguments[0])
+	if len(cmd.Arguments) > 0 {
+		parsedInt, err := strconv.Atoi(cmd.Arguments[0])
 		if err != nil {
 			return fmt.Errorf("error parsing limit, it needs to be integer: %w", err)
 		}
@@ -21,7 +21,7 @@ func handlerBrowse(s *state, cmd command, user database.User) error {
 
 	ctx := context.Background()
 
-	posts, err := s.db.GetPostsForUser(ctx, database.GetPostsForUserParams{
+	posts, err := s.Db.GetPostsForUser(ctx, database.GetPostsForUserParams{
 		UserID: user.ID,
 		Limit:  limit,
 	})
@@ -30,7 +30,7 @@ func handlerBrowse(s *state, cmd command, user database.User) error {
 	}
 
 	if len(posts) == 0 {
-		fmt.Println("no posts found — try running `./blogaggregator agg` first")
+		fmt.Println("no posts found — try running `blogaggregator agg` first")
 		return nil
 	}
 

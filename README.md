@@ -162,6 +162,33 @@ Schema migrations use [Goose](https://github.com/pressly/goose):
     goose -dir sql/schema postgres "$DATABASE_URL" up
     goose -dir sql/schema postgres "$DATABASE_URL" down
 
+The `Makefile` wraps the common tasks:
+
+    make build        # go build -o blogaggregator .
+    make sqlc         # sqlc generate
+    make goose-up     # apply migrations
+    make goose-down   # roll back migrations
+    make clean        # remove binary + build cache
+
+---
+
+## Project layout
+
+    blogaggregator/
+    ├── main.go                  # thin entrypoint: calls app.Run()
+    ├── internal/
+    │   ├── app/                 # wiring: config → DB → registry → dispatch
+    │   ├── handler/             # State, Command, all command handlers
+    │   ├── middleware/          # LoggedIn middleware
+    │   ├── config/              # ~/.gatorconfig.json read/write
+    │   ├── database/            # sqlc-generated (do not edit)
+    │   └── rss/                 # RSS fetching and parsing
+    ├── sql/
+    │   ├── schema/              # goose migrations
+    │   └── queries/             # sqlc query definitions
+    ├── sqlc.yaml
+    └── Makefile
+
 ---
 
 ## License

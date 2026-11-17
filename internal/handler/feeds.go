@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"context"
@@ -9,16 +9,16 @@ import (
 	"github.com/ihaliti03/blogaggregator/internal/database"
 )
 
-func handlerAddFeed(s *state, cmd command, user database.User) error {
-	if len(cmd.arguments) < 2 {
+func HandleAddFeed(s *State, cmd Command, user database.User) error {
+	if len(cmd.Arguments) < 2 {
 		return fmt.Errorf("usage: addfeed <name> <url>")
 	}
 
-	name := cmd.arguments[0]
-	feedURL := cmd.arguments[1]
+	name := cmd.Arguments[0]
+	feedURL := cmd.Arguments[1]
 	ctx := context.Background()
 
-	feed, err := s.db.CreateFeed(ctx, database.CreateFeedParams{
+	feed, err := s.Db.CreateFeed(ctx, database.CreateFeedParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -30,7 +30,7 @@ func handlerAddFeed(s *state, cmd command, user database.User) error {
 		return fmt.Errorf("couldn't create feed: %w", err)
 	}
 
-	follow, err := s.db.CreateFeedFollow(ctx, database.CreateFeedFollowParams{
+	follow, err := s.Db.CreateFeedFollow(ctx, database.CreateFeedFollowParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -46,8 +46,8 @@ func handlerAddFeed(s *state, cmd command, user database.User) error {
 	return nil
 }
 
-func handlerFeeds(s *state, cmd command) error {
-	feeds, err := s.db.GetFeeds(context.Background())
+func HandleFeeds(s *State, cmd Command) error {
+	feeds, err := s.Db.GetFeeds(context.Background())
 	if err != nil {
 		return err
 	}

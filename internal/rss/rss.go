@@ -1,36 +1,32 @@
-package main
+package rss
 
 import (
 	"context"
-	"database/sql"
 	"encoding/xml"
 	"fmt"
 	"html"
 	"io"
 	"net/http"
 	"time"
-
-	"github.com/google/uuid"
-	"github.com/ihaliti03/blogaggregator/internal/database"
 )
 
-type RSSFeed struct {
+type Feed struct {
 	Channel struct {
-		Title       string    `xml:"title"`
-		Link        string    `xml:"link"`
-		Description string    `xml:"description"`
-		Item        []RSSItem `xml:"item"`
+		Title       string `xml:"title"`
+		Link        string `xml:"link"`
+		Description string `xml:"description"`
+		Item        []Item `xml:"item"`
 	} `xml:"channel"`
 }
 
-type RSSItem struct {
+type Item struct {
 	Title       string `xml:"title"`
 	Link        string `xml:"link"`
 	Description string `xml:"description"`
 	PubDate     string `xml:"pubDate"`
 }
 
-func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
+func Fetch(ctx context.Context, feedURL string) (*Feed, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
 	if err != nil {
 		return nil, err
@@ -53,7 +49,7 @@ func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
-	var feed RSSFeed
+	var feed Feed
 	if err := xml.Unmarshal(body, &feed); err != nil {
 		return nil, fmt.Errorf("unmarshalling xml: %w", err)
 	}
@@ -68,59 +64,7 @@ func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
 	return &feed, nil
 }
 
-func scrapeFeeds(s *state) error {
-	ctx := context.Background()
-
-	feed, err := s.db.GetNextFeedToFetch(ctx)
-	if err != nil {
-		return fmt.Errorf("couldn't get next feed: %w", err)
-	}
-
-	if err := s.db.MarkFeedFetched(ctx, feed.ID); err != nil {
-		return fmt.Errorf("couldn't mark feed fetched: %w", err)
-	}
-
-	rss, err := fetchFeed(ctx, feed.Url)
-	if err != nil {
-		return fmt.Errorf("couldn't fetch feed %q: %w", feed.Url, err)
-	}
-
-	for _, item := range rss.Channel.Item {
-		description := sql.NullString{
-			String: item.Description,
-			Valid:  item.Description != "",
-		}
-
-		publishedAt := sql.NullTime{}
-		if item.PubDate != "" {
-			if t, err := parsePubDate(item.PubDate); err == nil {
-				publishedAt = sql.NullTime{Time: t, Valid: true}
-			} else {
-				fmt.Printf("couldn't parse pubDate %q: %v\n", item.PubDate, err)
-			}
-		}
-
-		err := s.db.CreatePost(ctx, database.CreatePostParams{
-			ID:          uuid.New(),
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-			Title:       item.Title,
-			Url:         item.Link,
-			Description: description,
-			PublishedAt: publishedAt,
-			FeedID:      feed.ID,
-		})
-		if err != nil {
-			fmt.Printf("couldn't create post %q: %v\n", item.Title, err)
-		}
-	}
-
-	fmt.Printf("Feed: %s — saved %d items\n", feed.Name, len(rss.Channel.Item))
-
-	return nil
-}
-
-func parsePubDate(s string) (time.Time, error) {
+func ParsePubDate(s string) (time.Time, error) {
 	layouts := []string{
 		time.RFC1123Z, // "Mon, 02 Jan 2006 15:04:05 -0700"  ← most common
 		time.RFC1123,  // "Mon, 02 Jan 2006 15:04:05 MST"
